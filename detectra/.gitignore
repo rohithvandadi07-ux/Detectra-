@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+
+# ROS security (VERY IMPORTANT)
+keystore/
+
+# ROS build files
+build/
+install/
+log/
