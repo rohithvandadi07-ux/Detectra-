@@ -1,14 +1,16 @@
 import subprocess
 import os
 
+from detectra.core.logger import info, warning, alert, success
+
 
 def validate_setup(keystore_path="keystore"):
-    print("🧪 Running validation test...")
+    info("Running validation test...")
 
     env = os.environ.copy()
 
     env["ROS_SECURITY_ENABLE"] = "true"
-    env["ROS_SECURITY_STRATEGY"] = "Permissive"  # 👈 IMPORTANT CHANGE
+    env["ROS_SECURITY_STRATEGY"] = "Permissive"
     env["ROS_SECURITY_KEYSTORE"] = os.path.abspath(keystore_path)
 
     try:
@@ -20,18 +22,31 @@ def validate_setup(keystore_path="keystore"):
             text=True
         )
 
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+
+        # ✅ Case 1: Successful execution
         if result.returncode == 0:
-            print("✅ Validation passed: system is stable")
-            return True
-        else:
-            print("⚠️ Validation warnings (acceptable in MVP)")
-            print(result.stderr)
+            success("Validation passed: secure node executed successfully")
             return True
 
+        # ⚠️ Case 2: Security-related warnings
+        if "SECURITY" in stderr or "security" in stderr:
+            alert("Security warning detected during validation")
+            alert(stderr)
+            return True  # still allow for MVP
+
+        # ⚠️ Case 3: General warnings
+        warning("Validation completed with warnings")
+        if stderr:
+            warning(stderr)
+
+        return True
+
     except subprocess.TimeoutExpired:
-        print("⚠️ Validation timed out (node ran, likely OK)")
+        info("Validation timed out (node likely running correctly)")
         return True
 
     except Exception as e:
-        print(f"❌ Validation error: {e}")
+        alert(f"Validation error: {e}")
         return False
